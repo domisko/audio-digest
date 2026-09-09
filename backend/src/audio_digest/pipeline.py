@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 
 from audio_digest.config import Settings
 from audio_digest.delivery.telegram import send_digest
-from audio_digest.models import DigestResult, Script
+from audio_digest.models import Article, DigestResult, Script
 from audio_digest.scraper.pipeline import fetch_articles, select_articles
 from audio_digest.storage import latest_audio_path, save_latest
 from audio_digest.summarizer import get_summarizer
@@ -25,6 +25,17 @@ MAX_DIGEST_ARTICLES = 8
 
 class NoArticlesError(RuntimeError):
     """Raised when no articles were found — better to fail loudly than send an empty digest."""
+
+
+def _attach_source_names(script: Script, articles: list[Article]) -> None:
+    """Match each segment back to its Article by URL to fill in source_name.
+
+    The LLM only ever sees article URLs, not our internal source labels, so
+    this is resolved locally rather than trusted from the model's output.
+    """
+    by_url = {str(article.url): article.source_display_name for article in articles}
+    for segment in script.segments:
+        segment.source_name = by_url.get(str(segment.source_article_url))
 
 
 def _mp3_duration_seconds(path: Path) -> float:
@@ -74,6 +85,7 @@ async def run_daily_digest(settings: Settings) -> DigestResult:
 
     summarizer = get_summarizer(settings)
     script = summarizer.summarize(articles, digest_date=now.date())
+    _attach_source_names(script, articles)
 
     tts = get_tts(settings)
     audio_path = latest_audio_path(settings.output_dir)

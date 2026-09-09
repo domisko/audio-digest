@@ -14,7 +14,10 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 def test_fetch_feed_parses_entries() -> None:
     source = FeedSource(
-        name="sample", url=(FIXTURES_DIR / "sample_feed.xml").as_uri(), category="general_news"
+        name="sample",
+        display_name="Sample",
+        url=(FIXTURES_DIR / "sample_feed.xml").as_uri(),
+        category="general_news",
     )
 
     entries = fetch_feed(source)
@@ -26,7 +29,9 @@ def test_fetch_feed_parses_entries() -> None:
 
 
 def test_fetch_feed_returns_empty_list_for_broken_url() -> None:
-    source = FeedSource(name="broken", url="not-a-valid-url", category="tech")
+    source = FeedSource(
+        name="broken", display_name="Broken", url="not-a-valid-url", category="tech"
+    )
 
     entries = fetch_feed(source)
 
@@ -44,6 +49,7 @@ def test_needs_full_text_long_summary() -> None:
 def _article(source: str, minutes_ago: int) -> Article:
     return Article(
         source=source,
+        source_display_name=source,
         title=f"{source} article {minutes_ago}",
         url=f"https://example.com/{source}-{minutes_ago}",
         published_at=datetime(2026, 1, 1, 12, 0, tzinfo=UTC).replace(minute=59 - minutes_ago),

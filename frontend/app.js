@@ -1,7 +1,9 @@
 // Fetches and renders today's digest. No build step, no framework — kept
 // deliberately simple since this page's only job is a read-only showcase view.
+// Waveform/playback is powered by wavesurfer.js (loaded via CDN in index.html).
 
 const API_BASE = document.querySelector('meta[name="api-base"]').content;
+const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2];
 
 const el = {
   loading: document.getElementById("state-loading"),
@@ -11,16 +13,28 @@ const el = {
   date: document.getElementById("date"),
   segments: document.getElementById("segments"),
   tagFilter: document.getElementById("tag-filter"),
+  transcriptToggle: document.getElementById("transcript-toggle"),
 };
 
 let currentSegments = [];
 let activeTag = null;
+let transcriptMode = false;
 
 function showState(name) {
   for (const key of ["loading", "empty", "error", "digest"]) {
     el[key].hidden = key !== name;
   }
 }
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds)) return "0:00";
+  const total = Math.floor(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// --- Segment rendering ---
 
 function renderSegment(segment, index) {
   const wrapper = document.createElement("div");
@@ -43,9 +57,10 @@ function renderSegment(segment, index) {
   heading.textContent = segment.headline;
   wrapper.appendChild(heading);
 
-  const summary = document.createElement("p");
-  summary.textContent = segment.summary_short;
-  wrapper.appendChild(summary);
+  const text = document.createElement("p");
+  text.className = transcriptMode ? "transcript-text" : "";
+  text.textContent = transcriptMode ? segment.narration : segment.summary_short;
+  wrapper.appendChild(text);
 
   if (segment.tone_axis && segment.tone_score !== null && segment.tone_score !== undefined) {
     wrapper.appendChild(renderToneScale(segment.tone_axis, segment.tone_score));
@@ -67,6 +82,30 @@ function renderActions(segment) {
     jumpBtn.textContent = `▶ ${formatTime(segment.audio_start_seconds)}`;
     jumpBtn.addEventListener("click", () => player.playFrom(segment.audio_start_seconds));
     actions.appendChild(jumpBtn);
+  }
+
+  if (segment.source_name) {
+    const badge = document.createElement("span");
+    badge.className = "source-badge";
+
+    const favicon = document.createElement("img");
+    favicon.alt = "";
+    favicon.width = 14;
+    favicon.height = 14;
+    favicon.addEventListener("error", () => favicon.remove());
+    try {
+      const hostname = new URL(segment.source_article_url).hostname;
+      favicon.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+    } catch {
+      favicon.remove();
+    }
+    badge.appendChild(favicon);
+
+    const name = document.createElement("span");
+    name.textContent = segment.source_name;
+    badge.appendChild(name);
+
+    actions.appendChild(badge);
   }
 
   const link = document.createElement("a");
@@ -100,14 +139,6 @@ function renderToneScale(axis, score) {
   tone.appendChild(track);
 
   return tone;
-}
-
-function formatTime(seconds) {
-  if (!Number.isFinite(seconds)) return "0:00";
-  const total = Math.floor(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 // --- Tag filter bar ---
@@ -153,179 +184,99 @@ function renderSegmentList() {
   });
 }
 
-// --- Custom audio player: play/pause, seek, volume, and a bar visualizer ---
-// driven by the Web Audio API's AnalyserNode.
+el.transcriptToggle.addEventListener("click", () => {
+  transcriptMode = !transcriptMode;
+  el.transcriptToggle.classList.toggle("active", transcriptMode);
+  el.transcriptToggle.textContent = transcriptMode ? "Kurzfassung" : "Live-Transkript";
+  renderSegmentList();
+});
+
+// --- Player: wavesurfer.js waveform + our own controls around it ---
 
 function initPlayer() {
-  const audio = document.getElementById("audio");
   const playerEl = document.getElementById("player");
   const toggle = document.getElementById("play-toggle");
   const iconPlay = document.getElementById("icon-play");
   const iconPause = document.getElementById("icon-pause");
-  const track = document.getElementById("progress-track");
-  const fill = document.getElementById("progress-fill");
-  const handle = document.getElementById("progress-handle");
   const timeCurrent = document.getElementById("time-current");
   const timeDuration = document.getElementById("time-duration");
   const muteToggle = document.getElementById("mute-toggle");
   const iconVolume = document.getElementById("icon-volume");
   const iconMuted = document.getElementById("icon-muted");
   const volumeSlider = document.getElementById("volume-slider");
-  const canvas = document.getElementById("visualizer");
-  const ctx2d = canvas.getContext("2d");
+  const speedToggle = document.getElementById("speed-toggle");
 
-  function setProgress(ratio) {
-    const pct = Math.max(0, Math.min(1, ratio)) * 100;
-    fill.style.width = `${pct}%`;
-    handle.style.left = `${pct}%`;
-  }
+  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  const border = getComputedStyle(document.documentElement).getPropertyValue("--border").trim();
 
-  toggle.addEventListener("click", () => {
-    if (audio.paused) {
-      audio.play();
-    } else {
-      audio.pause();
-    }
+  const ws = WaveSurfer.create({
+    container: "#waveform",
+    height: 40,
+    waveColor: border,
+    progressColor: accent,
+    cursorColor: "#ffffff",
+    cursorWidth: 2,
+    barWidth: 2,
+    barGap: 1,
+    barRadius: 2,
+    normalize: true,
   });
 
-  audio.addEventListener("play", () => {
-    playerEl.classList.add("playing");
-    iconPlay.hidden = true;
-    iconPause.hidden = false;
-    toggle.setAttribute("aria-label", "Pausieren");
-    startVisualizer();
-  });
-
-  audio.addEventListener("pause", () => {
-    playerEl.classList.remove("playing");
-    iconPlay.hidden = false;
-    iconPause.hidden = true;
-    toggle.setAttribute("aria-label", "Abspielen");
-  });
-
-  audio.addEventListener("loadedmetadata", () => {
-    timeDuration.textContent = formatTime(audio.duration);
-  });
-
-  audio.addEventListener("timeupdate", () => {
-    timeCurrent.textContent = formatTime(audio.currentTime);
-    if (audio.duration) {
-      setProgress(audio.currentTime / audio.duration);
-    }
-    highlightActiveSegment(audio.currentTime);
-  });
-
-  audio.addEventListener("ended", () => setProgress(0));
-
-  function seekToClientX(clientX) {
-    if (!audio.duration) return;
-    const rect = track.getBoundingClientRect();
-    const ratio = (clientX - rect.left) / rect.width;
-    audio.currentTime = Math.max(0, Math.min(1, ratio)) * audio.duration;
-  }
-
-  track.addEventListener("click", (e) => seekToClientX(e.clientX));
-
-  let dragging = false;
-  track.addEventListener("pointerdown", (e) => {
-    dragging = true;
-    seekToClientX(e.clientX);
-  });
-  window.addEventListener("pointermove", (e) => {
-    if (dragging) seekToClientX(e.clientX);
-  });
-  window.addEventListener("pointerup", () => {
-    dragging = false;
-  });
-
-  // --- Volume / mute ---
+  let rateIndex = 0;
   let lastVolume = 1;
 
-  function updateVolumeIcon() {
-    const isMuted = audio.muted || audio.volume === 0;
-    iconVolume.hidden = isMuted;
-    iconMuted.hidden = !isMuted;
+  function updatePlayIcon(playing) {
+    playerEl.classList.toggle("playing", playing);
+    iconPlay.hidden = playing;
+    iconPause.hidden = !playing;
+    toggle.setAttribute("aria-label", playing ? "Pausieren" : "Abspielen");
   }
 
+  function updateVolumeIcon() {
+    const isMuted = ws.getVolume() === 0;
+    iconVolume.hidden = isMuted;
+    iconMuted.hidden = !isMuted;
+    muteToggle.setAttribute("aria-label", isMuted ? "Ton einschalten" : "Stummschalten");
+  }
+
+  toggle.addEventListener("click", () => ws.playPause());
+  ws.on("play", () => updatePlayIcon(true));
+  ws.on("pause", () => updatePlayIcon(false));
+  ws.on("finish", () => updatePlayIcon(false));
+
+  ws.on("ready", (duration) => {
+    timeDuration.textContent = formatTime(duration);
+  });
+
+  ws.on("timeupdate", (currentTime) => {
+    timeCurrent.textContent = formatTime(currentTime);
+    highlightActiveSegment(currentTime);
+  });
+
   volumeSlider.addEventListener("input", () => {
-    audio.volume = Number(volumeSlider.value);
-    audio.muted = audio.volume === 0;
+    const value = Number(volumeSlider.value);
+    ws.setVolume(value);
     updateVolumeIcon();
   });
 
   muteToggle.addEventListener("click", () => {
-    if (audio.muted || audio.volume === 0) {
-      audio.muted = false;
-      audio.volume = lastVolume || 1;
-      volumeSlider.value = String(audio.volume);
+    if (ws.getVolume() === 0) {
+      ws.setVolume(lastVolume || 1);
+      volumeSlider.value = String(ws.getVolume());
     } else {
-      lastVolume = audio.volume;
-      audio.muted = true;
+      lastVolume = ws.getVolume();
+      ws.setVolume(0);
+      volumeSlider.value = "0";
     }
     updateVolumeIcon();
   });
 
-  // --- Bar visualizer (Web Audio API) ---
-  let analyser = null;
-  let freqData = null;
-  let rafId = null;
-
-  function ensureAudioGraph() {
-    if (analyser) return;
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioCtx();
-      const source = audioCtx.createMediaElementSource(audio);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      freqData = new Uint8Array(analyser.frequencyBinCount);
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-      if (audioCtx.state === "suspended") audioCtx.resume();
-    } catch (err) {
-      console.warn("Visualizer unavailable (Web Audio API blocked):", err);
-    }
-  }
-
-  function drawVisualizer() {
-    const dpr = window.devicePixelRatio || 1;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-    }
-    ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx2d.clearRect(0, 0, width, height);
-
-    if (!analyser || audio.paused) {
-      rafId = null;
-      return;
-    }
-
-    analyser.getByteFrequencyData(freqData);
-    const barCount = 28;
-    const step = Math.floor(freqData.length / barCount) || 1;
-    const barWidth = width / barCount;
-    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
-
-    for (let i = 0; i < barCount; i++) {
-      const value = freqData[i * step] / 255;
-      const barHeight = Math.max(2, value * height);
-      ctx2d.fillStyle = accent;
-      ctx2d.globalAlpha = 0.35 + value * 0.65;
-      ctx2d.fillRect(i * barWidth + 1, height - barHeight, barWidth - 2, barHeight);
-    }
-    ctx2d.globalAlpha = 1;
-
-    rafId = requestAnimationFrame(drawVisualizer);
-  }
-
-  function startVisualizer() {
-    ensureAudioGraph();
-    if (!analyser) return;
-    if (!rafId) rafId = requestAnimationFrame(drawVisualizer);
-  }
+  speedToggle.addEventListener("click", () => {
+    rateIndex = (rateIndex + 1) % PLAYBACK_RATES.length;
+    const rate = PLAYBACK_RATES[rateIndex];
+    ws.setPlaybackRate(rate, true);
+    speedToggle.textContent = `${rate}×`;
+  });
 
   function highlightActiveSegment(currentTime) {
     document.querySelectorAll(".segment").forEach((segEl) => {
@@ -333,17 +284,19 @@ function initPlayer() {
       const segment = currentSegments[index];
       if (!segment || segment.audio_start_seconds === null) return;
       const next = currentSegments[index + 1];
-      const nextStart = next && next.audio_start_seconds !== null ? next.audio_start_seconds : Infinity;
+      const nextStart =
+        next && next.audio_start_seconds !== null ? next.audio_start_seconds : Infinity;
       const isActive = currentTime >= segment.audio_start_seconds && currentTime < nextStart;
       segEl.classList.toggle("active", isActive);
     });
   }
 
   return {
-    setSrc: (src) => (audio.src = src),
+    setSrc: (src) => ws.load(src),
     playFrom: (seconds) => {
-      audio.currentTime = seconds;
-      audio.play();
+      const duration = ws.getDuration();
+      if (duration) ws.seekTo(Math.max(0, Math.min(1, seconds / duration)));
+      ws.play();
     },
   };
 }

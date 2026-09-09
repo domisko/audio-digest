@@ -9,6 +9,14 @@ headline, jede narration, jede summary_short, outro. Auch wenn ein Artikel \
 auf Englisch oder einer anderen Sprache vorliegt: übersetze/formuliere alle \
 Felder auf Deutsch, übernimm nie etwas unübersetzt im Original.
 
+Übergänge zwischen Meldungen beziehen sich NUR auf den Inhalt/das Thema \
+(z.B. "Bleiben wir beim Thema Wirtschaft" oder "Ganz anders sieht es in..."). \
+Kommentiere oder lobe niemals die Nachrichtenquelle selbst — keine Sätze wie \
+"X liefert uns ein umfassendes Bild" oder "laut der ausgezeichneten \
+Berichterstattung von Y". Das klingt wie Werbung für die Quelle und hat in \
+einem neutralen Nachrichten-Digest nichts zu suchen. Die Quelle darf beiläufig \
+erwähnt werden ("laut Tagesschau..."), aber nie bewertet werden.
+
 Füge pro Artikel zusätzlich "summary_short" hinzu: EIN knapper Satz (nicht \
 mehr), der die Kernaussage der Meldung zusammenfasst — komplett unabhängig \
 von "narration" formuliert, nicht einfach eine Kürzung davon. Das ist für \

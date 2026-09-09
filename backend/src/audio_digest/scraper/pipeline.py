@@ -38,6 +38,7 @@ def fetch_articles(
                 articles.append(
                     Article(
                         source=source.name,
+                        source_display_name=source.display_name,
                         title=entry.title,
                         url=entry.url,  # type: ignore[arg-type]  # pydantic coerces str -> HttpUrl at runtime
                         published_at=entry.published_at,

@@ -12,6 +12,7 @@ from audio_digest.summarizer.openrouter import OpenRouterSummarizer
 def _make_article(title: str) -> Article:
     return Article(
         source="test",
+        source_display_name="Test",
         title=title,
         url="https://example.com/a",
         published_at=datetime.now(UTC),

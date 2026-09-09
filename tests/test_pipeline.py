@@ -32,6 +32,7 @@ def _settings(tmp_path: Path) -> Settings:
 def _article() -> Article:
     return Article(
         source="test",
+        source_display_name="Test",
         title="Title",
         url="https://example.com/a",
         published_at=datetime.now(UTC),

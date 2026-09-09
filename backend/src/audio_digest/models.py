@@ -13,6 +13,7 @@ from pydantic import BaseModel, HttpUrl
 
 class Article(BaseModel):
     source: str
+    source_display_name: str
     title: str
     url: HttpUrl
     published_at: datetime
@@ -24,6 +25,9 @@ class Article(BaseModel):
 
 class ScriptSegment(BaseModel):
     source_article_url: HttpUrl
+    # Populated by the pipeline (not the LLM) from the matching Article — a
+    # human-readable outlet name (e.g. "Euronews") for display next to the link.
+    source_name: str | None = None
     headline: str
     narration: str
     # A single condensed sentence for the frontend's read view, distinct from

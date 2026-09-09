@@ -16,6 +16,7 @@ def _digest_result() -> DigestResult:
             Article.model_validate(
                 {
                     "source": "test",
+                    "source_display_name": "Test",
                     "title": "Title",
                     "url": "https://example.com/a",
                     "published_at": "2026-09-06T08:00:00Z",
