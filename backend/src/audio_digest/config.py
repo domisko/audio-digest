@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     summarizer_provider: Literal["claude", "openai", "ollama", "openrouter"] = "claude"
     openrouter_model: str = "google/gemini-2.5-flash"
     tts_provider: Literal["edge", "openai", "elevenlabs"] = "edge"
-    edge_tts_voice: str = "en-US-GuyNeural"
+    # The digest script is always German (see summarizer/prompts.py), so the
+    # voice needs to be too — an English voice reading German text has a
+    # heavy accent.
+    edge_tts_voice: str = "de-DE-SeraphinaMultilingualNeural"
 
     output_dir: Path = Path("output")
 
