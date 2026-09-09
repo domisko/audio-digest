@@ -43,8 +43,8 @@ body {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.28;
+  filter: blur(65px);
+  opacity: 0.38;
   will-change: transform;
 }
 
@@ -291,14 +291,30 @@ header h1 {
   padding-top: 0.75rem;
   border-top: 1px solid var(--border);
   max-height: 4.6em;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.caption-box::-webkit-scrollbar {
+  display: none;
 }
 
 .caption-box p {
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
   font-size: 0.9rem;
-  color: var(--fg);
+  color: var(--muted);
+}
+
+.cap-word {
+  padding: 0.05em 0.15em;
+  border-radius: 4px;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.cap-word.active {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* --- Tag filter --- */

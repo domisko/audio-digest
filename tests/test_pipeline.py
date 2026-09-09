@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from audio_digest.config import Settings
-from audio_digest.models import Article, Script, ScriptSegment
+from audio_digest.models import Article, Script, ScriptSegment, WordTiming
 from audio_digest.pipeline import NoArticlesError, _attach_source_names, run_daily_digest
 from audio_digest.tts.base import TextToSpeech
 
@@ -23,6 +23,13 @@ class FakeTTS(TextToSpeech):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(FIXTURES_DIR / "silence.mp3", output_path)
         return output_path
+
+    async def synthesize_with_words(self, text: str, output_path: Path) -> list[WordTiming]:
+        await self.synthesize(text, output_path)
+        return [
+            WordTiming(text=word, start_seconds=i * 0.1, duration_seconds=0.1)
+            for i, word in enumerate(text.split())
+        ]
 
 
 def _settings(tmp_path: Path) -> Settings:
@@ -141,6 +148,24 @@ async def test_run_daily_digest_sets_segment_audio_offsets(tmp_path: Path) -> No
         assert second.audio_start_seconds is not None
         # Segment 2 starts after intro + segment 1's clip, so strictly later.
         assert second.audio_start_seconds > first.audio_start_seconds > 0
+
+
+@pytest.mark.asyncio
+async def test_run_daily_digest_shifts_word_timings_by_segment_offset(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+
+    with (
+        patch("audio_digest.pipeline.fetch_articles", return_value=[_article()]),
+        patch("audio_digest.pipeline.get_summarizer") as mock_get_summarizer,
+        patch("audio_digest.pipeline.get_tts", return_value=FakeTTS()),
+    ):
+        mock_get_summarizer.return_value.summarize.return_value = _script()
+
+        result = await run_daily_digest(settings)
+
+        first, second = result.script.segments
+        assert first.words[0].start_seconds == pytest.approx(first.audio_start_seconds)
+        assert second.words[0].start_seconds == pytest.approx(second.audio_start_seconds)
 
 
 @pytest.mark.asyncio

@@ -28,15 +28,16 @@ function initBackgroundParallax() {
     targetY = e.clientY / window.innerHeight - 0.5;
   });
 
-  const MAX_SHIFT_PX = 36;
+  const MAX_SHIFT_PX = 110;
 
   function tick() {
     for (const wrap of wraps) {
       const goalX = targetX * MAX_SHIFT_PX * wrap.depth;
       const goalY = targetY * MAX_SHIFT_PX * wrap.depth;
-      wrap.x += (goalX - wrap.x) * 0.06;
-      wrap.y += (goalY - wrap.y) * 0.06;
-      wrap.el.style.transform = `translate(${wrap.x.toFixed(1)}px, ${wrap.y.toFixed(1)}px)`;
+      wrap.x += (goalX - wrap.x) * 0.09;
+      wrap.y += (goalY - wrap.y) * 0.09;
+      const scale = 1 + (Math.abs(targetX) + Math.abs(targetY)) * 0.12 * wrap.depth;
+      wrap.el.style.transform = `translate(${wrap.x.toFixed(1)}px, ${wrap.y.toFixed(1)}px) scale(${scale.toFixed(3)})`;
     }
     requestAnimationFrame(tick);
   }
@@ -259,6 +260,7 @@ function initPlayer() {
   let lastVolume = 1;
   let captionsOn = false;
   let lastActiveIndex = -1;
+  let captionWords = [];
 
   // Setting inline `style.display` directly rather than the `hidden`
   // attribute — a previous version relied on `[hidden]{display:none}` from
@@ -294,13 +296,14 @@ function initPlayer() {
   ws.on("timeupdate", (currentTime) => {
     timeCurrent.textContent = formatTime(currentTime);
     updateActiveSegment(currentTime);
+    updateActiveWord(currentTime);
   });
 
   ccToggle.addEventListener("click", () => {
     captionsOn = !captionsOn;
     ccToggle.setAttribute("aria-pressed", String(captionsOn));
     captionBox.hidden = !captionsOn;
-    if (captionsOn) updateCaptionText(lastActiveIndex);
+    if (captionsOn) renderCaptionSegment(lastActiveIndex);
   });
 
   volumeSlider.addEventListener("input", () => {
@@ -344,9 +347,42 @@ function initPlayer() {
     return -1;
   }
 
-  function updateCaptionText(index) {
+  // Renders the segment's narration as one <span> per word (from the TTS
+  // backend's word-boundary timing) so updateActiveWord() can highlight
+  // exactly the word being spoken right now. Falls back to plain text if a
+  // TTS backend didn't provide word timing (only EdgeTTS currently does).
+  function renderCaptionSegment(index) {
     const segment = currentSegments[index];
-    captionText.textContent = segment ? segment.narration : "";
+    captionText.innerHTML = "";
+    captionWords = [];
+    if (!segment) return;
+
+    if (segment.words && segment.words.length) {
+      for (const word of segment.words) {
+        const span = document.createElement("span");
+        span.className = "cap-word";
+        span.textContent = word.text + " ";
+        captionText.appendChild(span);
+        captionWords.push({
+          el: span,
+          start: word.start_seconds,
+          end: word.start_seconds + word.duration_seconds,
+        });
+      }
+    } else {
+      captionText.textContent = segment.narration;
+    }
+  }
+
+  function updateActiveWord(currentTime) {
+    if (!captionsOn || captionWords.length === 0) return;
+    let activeEl = null;
+    for (const word of captionWords) {
+      const isActive = currentTime >= word.start && currentTime < word.end;
+      word.el.classList.toggle("active", isActive);
+      if (isActive) activeEl = word.el;
+    }
+    if (activeEl) activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
   function updateActiveSegment(currentTime) {
@@ -358,7 +394,7 @@ function initPlayer() {
       segEl.classList.toggle("active", Number(segEl.dataset.index) === index);
     });
 
-    if (captionsOn) updateCaptionText(index);
+    if (captionsOn) renderCaptionSegment(index);
   }
 
   return {

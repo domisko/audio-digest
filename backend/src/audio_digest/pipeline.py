@@ -72,8 +72,12 @@ async def _synthesize_script_audio(tts: TextToSpeech, script: Script, output_pat
 
         for index, segment in enumerate(script.segments):
             segment_path = tmp / f"{index + 1:03d}_segment.mp3"
-            await tts.synthesize(segment.narration, segment_path)
+            words = await tts.synthesize_with_words(segment.narration, segment_path)
             segment.audio_start_seconds = cumulative_seconds
+            segment.words = [
+                word.model_copy(update={"start_seconds": word.start_seconds + cumulative_seconds})
+                for word in words
+            ]
             cumulative_seconds += _mp3_duration_seconds(segment_path)
             parts.append(segment_path)
 

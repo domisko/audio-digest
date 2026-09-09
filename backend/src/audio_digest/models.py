@@ -23,6 +23,14 @@ class Article(BaseModel):
     category: Literal["general_news", "tech"]
 
 
+class WordTiming(BaseModel):
+    """One spoken word's position in the final concatenated audio file."""
+
+    text: str
+    start_seconds: float
+    duration_seconds: float
+
+
 class ScriptSegment(BaseModel):
     source_article_url: HttpUrl
     # Populated by the pipeline (not the LLM) from the matching Article — a
@@ -44,6 +52,10 @@ class ScriptSegment(BaseModel):
     # offset in the final audio file where this segment's narration starts,
     # so the frontend can link a segment straight to its point in the audio.
     audio_start_seconds: float | None = None
+    # Per-word timing within the final audio, for karaoke-style caption
+    # highlighting. Empty if the active TTS backend doesn't expose word
+    # boundaries (only EdgeTTS currently does).
+    words: list[WordTiming] = []
 
 
 class Script(BaseModel):
