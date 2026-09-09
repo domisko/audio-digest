@@ -21,6 +21,10 @@ DEFAULT_FEED_SOURCES: list[FeedSource] = [
     FeedSource(
         name="bbc_world", url="http://feeds.bbci.co.uk/news/world/rss.xml", category="general_news"
     ),
-    FeedSource(name="nzz_startseite", url="https://www.nzz.ch/recent.rss", category="general_news"),
+    FeedSource(
+        name="euronews",
+        url="https://www.euronews.com/rss?level=theme&name=news",
+        category="general_news",
+    ),
     FeedSource(name="hackernews", url="https://hnrss.org/frontpage", category="tech"),
 ]

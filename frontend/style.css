@@ -110,3 +110,37 @@ header h1 {
   color: var(--muted);
   text-align: center;
 }
+
+.source {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.source summary {
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+}
+
+.source summary::-webkit-details-marker {
+  display: none;
+}
+
+.source summary::before {
+  content: "▸ ";
+}
+
+.source[open] summary::before {
+  content: "▾ ";
+}
+
+.source a {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.source a:hover {
+  text-decoration: underline;
+}

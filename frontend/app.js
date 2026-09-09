@@ -37,7 +37,31 @@ function renderSegment(segment) {
     wrapper.appendChild(renderToneScale(segment.tone_axis, segment.tone_score));
   }
 
+  wrapper.appendChild(renderSource(segment.source_article_url));
+
   return wrapper;
+}
+
+function renderSource(url) {
+  const details = document.createElement("details");
+  details.className = "source";
+
+  const summary = document.createElement("summary");
+  summary.textContent = "Quelle";
+  details.appendChild(summary);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  try {
+    link.textContent = `${new URL(url).hostname.replace(/^www\./, "")} ↗`;
+  } catch {
+    link.textContent = `${url} ↗`;
+  }
+  details.appendChild(link);
+
+  return details;
 }
 
 function renderToneScale(axis, score) {
@@ -84,7 +108,7 @@ async function loadDigest() {
 }
 
 function render(result) {
-  el.date.textContent = new Date(result.digest_date).toLocaleDateString(undefined, {
+  el.date.textContent = new Date(result.digest_date).toLocaleDateString("de-DE", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -103,7 +127,7 @@ function render(result) {
     const caveat = document.createElement("p");
     caveat.className = "tone-caveat";
     caveat.textContent =
-      "Tone scales are a subjective, AI-generated stylistic impression — not a fact check.";
+      "Die Tonalitäts-Skalen sind eine subjektive, KI-generierte stilistische Einschätzung — kein Faktencheck.";
     el.digest.appendChild(caveat);
   }
 }

@@ -6,12 +6,16 @@ from datetime import UTC, datetime
 from audio_digest.config import Settings
 from audio_digest.delivery.telegram import send_digest
 from audio_digest.models import DigestResult
-from audio_digest.scraper.pipeline import fetch_articles
+from audio_digest.scraper.pipeline import fetch_articles, select_articles
 from audio_digest.storage import latest_audio_path, save_latest
 from audio_digest.summarizer import get_summarizer
 from audio_digest.tts import get_tts
 
 logger = logging.getLogger(__name__)
+
+# Keeps the spoken digest around ~5 minutes rather than growing with however
+# many articles happened to be published that day.
+MAX_DIGEST_ARTICLES = 8
 
 
 class NoArticlesError(RuntimeError):
@@ -25,6 +29,7 @@ async def run_daily_digest(settings: Settings) -> DigestResult:
     articles = fetch_articles(since=today_start)
     if not articles:
         raise NoArticlesError("No articles found for today's digest")
+    articles = select_articles(articles, limit=MAX_DIGEST_ARTICLES)
 
     summarizer = get_summarizer(settings)
     script = summarizer.summarize(articles, digest_date=now.date())

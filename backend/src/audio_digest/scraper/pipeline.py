@@ -53,3 +53,25 @@ def fetch_articles(
                 )
 
     return articles
+
+
+def select_articles(articles: list[Article], limit: int) -> list[Article]:
+    """Pick a manageable, source-diverse subset for a short digest.
+
+    Round-robins across sources (most recent first within each) so one
+    prolific feed doesn't crowd out the others.
+    """
+    by_source: dict[str, list[Article]] = {}
+    for article in sorted(articles, key=lambda a: a.published_at, reverse=True):
+        by_source.setdefault(article.source, []).append(article)
+
+    selected: list[Article] = []
+    while len(selected) < limit and any(by_source.values()):
+        for source_articles in by_source.values():
+            if not source_articles:
+                continue
+            selected.append(source_articles.pop(0))
+            if len(selected) >= limit:
+                break
+
+    return selected
