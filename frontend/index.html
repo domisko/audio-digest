@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Override at deploy time (e.g. via a build step) if the API isn't same-origin. -->
+    <meta name="api-base" content="http://localhost:8000" />
+    <title>Audio Daily Digest</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Audio Daily Digest</h1>
+        <p id="date" class="date"></p>
+      </header>
+
+      <section id="state-loading" class="state">Loading today's digest…</section>
+      <section id="state-empty" class="state" hidden>
+        No digest has been generated yet today.
+      </section>
+      <section id="state-error" class="state" hidden>
+        Couldn't reach the digest API.
+      </section>
+
+      <section id="digest" hidden>
+        <audio id="player" controls></audio>
+
+        <article>
+          <p id="intro" class="script-line intro"></p>
+          <div id="segments"></div>
+          <p id="outro" class="script-line outro"></p>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
