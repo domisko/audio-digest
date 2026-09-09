@@ -1,15 +1,20 @@
 """Daily digest orchestration — the one function every caller (API, CLI) wires up to."""
 
 import logging
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
+
+from mutagen.mp3 import MP3
 
 from audio_digest.config import Settings
 from audio_digest.delivery.telegram import send_digest
-from audio_digest.models import DigestResult
+from audio_digest.models import DigestResult, Script
 from audio_digest.scraper.pipeline import fetch_articles, select_articles
 from audio_digest.storage import latest_audio_path, save_latest
 from audio_digest.summarizer import get_summarizer
 from audio_digest.tts import get_tts
+from audio_digest.tts.base import TextToSpeech
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +25,42 @@ MAX_DIGEST_ARTICLES = 8
 
 class NoArticlesError(RuntimeError):
     """Raised when no articles were found — better to fail loudly than send an empty digest."""
+
+
+def _mp3_duration_seconds(path: Path) -> float:
+    # mutagen ships without type stubs.
+    return float(MP3(path).info.length)  # type: ignore[no-untyped-call,attr-defined]
+
+
+async def _synthesize_script_audio(tts: TextToSpeech, script: Script, output_path: Path) -> None:
+    """Synthesize intro/segments/outro as separate clips, concatenate them, and
+    record each segment's start offset (mutating `script.segments` in place) so
+    the frontend can jump straight to a segment's point in the audio.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp = Path(tmp_dir)
+        parts: list[Path] = []
+
+        intro_path = tmp / "000_intro.mp3"
+        await tts.synthesize(script.intro, intro_path)
+        parts.append(intro_path)
+        cumulative_seconds = _mp3_duration_seconds(intro_path)
+
+        for index, segment in enumerate(script.segments):
+            segment_path = tmp / f"{index + 1:03d}_segment.mp3"
+            await tts.synthesize(segment.narration, segment_path)
+            segment.audio_start_seconds = cumulative_seconds
+            cumulative_seconds += _mp3_duration_seconds(segment_path)
+            parts.append(segment_path)
+
+        outro_path = tmp / "999_outro.mp3"
+        await tts.synthesize(script.outro, outro_path)
+        parts.append(outro_path)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with output_path.open("wb") as combined:
+            for part in parts:
+                combined.write(part.read_bytes())
 
 
 async def run_daily_digest(settings: Settings) -> DigestResult:
@@ -36,7 +77,7 @@ async def run_daily_digest(settings: Settings) -> DigestResult:
 
     tts = get_tts(settings)
     audio_path = latest_audio_path(settings.output_dir)
-    await tts.synthesize(script.full_text, audio_path)
+    await _synthesize_script_audio(tts, script, audio_path)
 
     delivered = False
     delivery_message_id = None

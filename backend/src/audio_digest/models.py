@@ -30,9 +30,16 @@ class ScriptSegment(BaseModel):
     # `narration` (the full spoken-audio paragraph) — the two audiences (skim
     # vs. listen) want different lengths.
     summary_short: str
+    # Short, reusable category labels (e.g. "Politik", "Wirtschaft") the
+    # frontend renders as pills and uses to build its tag filter bar.
+    tags: list[str] = []
     # Subjective, model-generated tone observation — never framed as fact-checking.
     tone_axis: str | None = None
     tone_score: int | None = None
+    # Populated by the pipeline after TTS synthesis (not by the LLM) — the
+    # offset in the final audio file where this segment's narration starts,
+    # so the frontend can link a segment straight to its point in the audio.
+    audio_start_seconds: float | None = None
 
 
 class Script(BaseModel):

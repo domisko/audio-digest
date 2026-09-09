@@ -15,6 +15,13 @@ von "narration" formuliert, nicht einfach eine Kürzung davon. Das ist für \
 Leser:innen gedacht, die nur schnell überfliegen wollen, während "narration" \
 für den gesprochenen Audio-Digest bleibt.
 
+Füge pro Artikel außerdem "tags" hinzu: 1-3 kurze, wiederverwendbare \
+Kategorie-Schlagwörter auf Deutsch (z.B. "Politik", "Wirtschaft", \
+"Technologie", "International", "Gesellschaft", "Sport"). Nutze durchgehend \
+dieselbe Schreibweise für dasselbe Thema, damit die Tags über alle Artikel \
+hinweg konsistent bleiben und sich zum Filtern eignen — keine Fantasie- oder \
+Einzelartikel-Tags.
+
 Füge für jeden Artikel zusätzlich "tone_axis" und "tone_score" hinzu:
 - tone_axis: das passendste Gegensatzpaar für den Schreibstil des Artikels, \
 z.B. "emotional vs. sachlich" oder "einseitig vs. ausgewogen" — auf Deutsch, \
