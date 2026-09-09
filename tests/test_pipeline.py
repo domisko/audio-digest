@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from audio_digest.config import Settings
 from audio_digest.models import Article, Script, ScriptSegment
-from audio_digest.pipeline import NoArticlesError, run_daily_digest
+from audio_digest.pipeline import NoArticlesError, _attach_source_names, run_daily_digest
 from audio_digest.tts.base import TextToSpeech
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -63,6 +63,45 @@ def _script() -> Script:
         outro="Bye",
         full_text="Hi N N2 Bye",
     )
+
+
+def test_attach_source_names_exact_match() -> None:
+    script = _script()
+    _attach_source_names(script, [_article()])
+
+    assert script.segments[0].source_name == "Test"
+
+
+def test_attach_source_names_falls_back_to_prefix_match() -> None:
+    # Simulates the LLM echoing a long URL back slightly truncated.
+    script = Script(
+        digest_date=date.today(),
+        intro="Hi",
+        segments=[
+            ScriptSegment(
+                source_article_url="https://example.com/a-truncat",
+                headline="H",
+                narration="N",
+                summary_short="S",
+            )
+        ],
+        outro="Bye",
+        full_text="Hi N Bye",
+    )
+    article = Article(
+        source="test",
+        source_display_name="Test",
+        title="Title",
+        url="https://example.com/a-truncated-title",
+        published_at=datetime.now(UTC),
+        summary_raw="summary",
+        fetched_at=datetime.now(UTC),
+        category="general_news",
+    )
+
+    _attach_source_names(script, [article])
+
+    assert script.segments[0].source_name == "Test"
 
 
 @pytest.mark.asyncio

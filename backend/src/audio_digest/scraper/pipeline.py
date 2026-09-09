@@ -15,6 +15,22 @@ from audio_digest.scraper.rss import fetch_feed
 
 logger = logging.getLogger(__name__)
 
+# Entries with barely any usable text (e.g. a video-bulletin stub with just a
+# one-line description) give the summarizer nothing to actually summarize,
+# which tends to produce filler content about the source instead of the story.
+MIN_USABLE_CONTENT_LENGTH = 80
+
+# Video-bulletin pages (no real article body — just a player and show
+# blurbs) commonly live under a /video/ path. Extracting "full text" from one
+# picks up generic show descriptions instead of the story, which then reads
+# like an ad for the outlet once summarized. Skip these outright rather than
+# trying to summarize placeholder text.
+NON_ARTICLE_URL_MARKERS = ("/video/",)
+
+
+def _looks_like_article(url: str) -> bool:
+    return not any(marker in url for marker in NON_ARTICLE_URL_MARKERS)
+
 
 def fetch_articles(
     sources: list[FeedSource] | None = None,
@@ -29,10 +45,18 @@ def fetch_articles(
         for entry in fetch_feed(source):
             if since and entry.published_at < since:
                 continue
+            if not _looks_like_article(entry.url):
+                logger.info("Skipping non-article entry from %s: %s", source.name, entry.url)
+                continue
 
             full_text = None
             if needs_full_text(entry.summary_raw):
                 full_text = extract_full_text(entry.url, source)
+
+            usable_text = full_text or entry.summary_raw
+            if len(usable_text) < MIN_USABLE_CONTENT_LENGTH:
+                logger.info("Skipping near-empty article from %s: %s", source.name, entry.url)
+                continue
 
             try:
                 articles.append(

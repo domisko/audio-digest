@@ -32,10 +32,23 @@ def _attach_source_names(script: Script, articles: list[Article]) -> None:
 
     The LLM only ever sees article URLs, not our internal source labels, so
     this is resolved locally rather than trusted from the model's output.
+    Falls back to a prefix match since the model occasionally echoes a long
+    URL back slightly truncated.
     """
     by_url = {str(article.url): article.source_display_name for article in articles}
     for segment in script.segments:
-        segment.source_name = by_url.get(str(segment.source_article_url))
+        segment_url = str(segment.source_article_url)
+        name = by_url.get(segment_url)
+        if name is None:
+            name = next(
+                (
+                    display_name
+                    for url, display_name in by_url.items()
+                    if url.startswith(segment_url) or segment_url.startswith(url)
+                ),
+                None,
+            )
+        segment.source_name = name
 
 
 def _mp3_duration_seconds(path: Path) -> float:

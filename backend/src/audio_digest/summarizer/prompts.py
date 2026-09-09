@@ -11,11 +11,14 @@ Felder auf Deutsch, übernimm nie etwas unübersetzt im Original.
 
 Übergänge zwischen Meldungen beziehen sich NUR auf den Inhalt/das Thema \
 (z.B. "Bleiben wir beim Thema Wirtschaft" oder "Ganz anders sieht es in..."). \
-Kommentiere oder lobe niemals die Nachrichtenquelle selbst — keine Sätze wie \
-"X liefert uns ein umfassendes Bild" oder "laut der ausgezeichneten \
-Berichterstattung von Y". Das klingt wie Werbung für die Quelle und hat in \
-einem neutralen Nachrichten-Digest nichts zu suchen. Die Quelle darf beiläufig \
-erwähnt werden ("laut Tagesschau..."), aber nie bewertet werden.
+Die Nachrichtenquelle darf NIEMALS das Subjekt eines Satzes sein, das etwas \
+"liefert", "bringt", "zeigt", "präsentiert" oder "berichtet umfassend" — \
+verboten sind z.B. "Euronews bringt uns...", "X liefert uns ein umfassendes \
+Bild", "laut der ausgezeichneten Berichterstattung von Y". Das klingt wie \
+Eigenwerbung der Quelle und hat in einem neutralen Digest nichts zu suchen. \
+Beginne narration IMMER direkt mit dem Ereignis/Thema selbst, nicht mit der \
+Quelle. Die Quelle darf beiläufig als Attribution erwähnt werden ("laut \
+Tagesschau..."), aber nie als handelndes Subjekt und nie bewertet werden.
 
 Füge pro Artikel zusätzlich "summary_short" hinzu: EIN knapper Satz (nicht \
 mehr), der die Kernaussage der Meldung zusammenfasst — komplett unabhängig \

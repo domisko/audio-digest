@@ -5,6 +5,46 @@
 const API_BASE = document.querySelector('meta[name="api-base"]').content;
 const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2];
 
+// --- Background: blobs drift on their own (CSS keyframes) and additionally
+// ease toward the pointer position for a subtle interactive parallax, without
+// fighting the CSS animation since the pointer offset is applied to a wrapper
+// element around each blob rather than the blob itself.
+function initBackgroundParallax() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const wraps = [...document.querySelectorAll(".blob-wrap")].map((wrap) => ({
+    el: wrap,
+    depth: Number(wrap.dataset.depth) || 0.5,
+    x: 0,
+    y: 0,
+  }));
+  if (wraps.length === 0) return;
+
+  let targetX = 0;
+  let targetY = 0;
+
+  window.addEventListener("pointermove", (e) => {
+    targetX = e.clientX / window.innerWidth - 0.5;
+    targetY = e.clientY / window.innerHeight - 0.5;
+  });
+
+  const MAX_SHIFT_PX = 36;
+
+  function tick() {
+    for (const wrap of wraps) {
+      const goalX = targetX * MAX_SHIFT_PX * wrap.depth;
+      const goalY = targetY * MAX_SHIFT_PX * wrap.depth;
+      wrap.x += (goalX - wrap.x) * 0.06;
+      wrap.y += (goalY - wrap.y) * 0.06;
+      wrap.el.style.transform = `translate(${wrap.x.toFixed(1)}px, ${wrap.y.toFixed(1)}px)`;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+initBackgroundParallax();
+
 const el = {
   loading: document.getElementById("state-loading"),
   empty: document.getElementById("state-empty"),
@@ -13,12 +53,10 @@ const el = {
   date: document.getElementById("date"),
   segments: document.getElementById("segments"),
   tagFilter: document.getElementById("tag-filter"),
-  transcriptToggle: document.getElementById("transcript-toggle"),
 };
 
 let currentSegments = [];
 let activeTag = null;
-let transcriptMode = false;
 
 function showState(name) {
   for (const key of ["loading", "empty", "error", "digest"]) {
@@ -58,8 +96,7 @@ function renderSegment(segment, index) {
   wrapper.appendChild(heading);
 
   const text = document.createElement("p");
-  text.className = transcriptMode ? "transcript-text" : "";
-  text.textContent = transcriptMode ? segment.narration : segment.summary_short;
+  text.textContent = segment.summary_short;
   wrapper.appendChild(text);
 
   if (segment.tone_axis && segment.tone_score !== null && segment.tone_score !== undefined) {
@@ -184,13 +221,6 @@ function renderSegmentList() {
   });
 }
 
-el.transcriptToggle.addEventListener("click", () => {
-  transcriptMode = !transcriptMode;
-  el.transcriptToggle.classList.toggle("active", transcriptMode);
-  el.transcriptToggle.textContent = transcriptMode ? "Kurzfassung" : "Live-Transkript";
-  renderSegmentList();
-});
-
 // --- Player: wavesurfer.js waveform + our own controls around it ---
 
 function initPlayer() {
@@ -205,6 +235,9 @@ function initPlayer() {
   const iconMuted = document.getElementById("icon-muted");
   const volumeSlider = document.getElementById("volume-slider");
   const speedToggle = document.getElementById("speed-toggle");
+  const ccToggle = document.getElementById("cc-toggle");
+  const captionBox = document.getElementById("caption-box");
+  const captionText = document.getElementById("caption-text");
 
   const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
   const border = getComputedStyle(document.documentElement).getPropertyValue("--border").trim();
@@ -224,20 +257,30 @@ function initPlayer() {
 
   let rateIndex = 0;
   let lastVolume = 1;
+  let captionsOn = false;
+  let lastActiveIndex = -1;
 
+  // Setting inline `style.display` directly rather than the `hidden`
+  // attribute — a previous version relied on `[hidden]{display:none}` from
+  // the stylesheet, which is fragile against stale caches of an old CSS
+  // file. Inline styles always win regardless of what CSS happens to be
+  // loaded, so this can't silently regress again.
   function updatePlayIcon(playing) {
     playerEl.classList.toggle("playing", playing);
-    iconPlay.hidden = playing;
-    iconPause.hidden = !playing;
+    iconPlay.style.display = playing ? "none" : "";
+    iconPause.style.display = playing ? "" : "none";
     toggle.setAttribute("aria-label", playing ? "Pausieren" : "Abspielen");
   }
 
   function updateVolumeIcon() {
     const isMuted = ws.getVolume() === 0;
-    iconVolume.hidden = isMuted;
-    iconMuted.hidden = !isMuted;
+    iconVolume.style.display = isMuted ? "none" : "";
+    iconMuted.style.display = isMuted ? "" : "none";
     muteToggle.setAttribute("aria-label", isMuted ? "Ton einschalten" : "Stummschalten");
   }
+
+  updatePlayIcon(false);
+  updateVolumeIcon();
 
   toggle.addEventListener("click", () => ws.playPause());
   ws.on("play", () => updatePlayIcon(true));
@@ -250,7 +293,14 @@ function initPlayer() {
 
   ws.on("timeupdate", (currentTime) => {
     timeCurrent.textContent = formatTime(currentTime);
-    highlightActiveSegment(currentTime);
+    updateActiveSegment(currentTime);
+  });
+
+  ccToggle.addEventListener("click", () => {
+    captionsOn = !captionsOn;
+    ccToggle.setAttribute("aria-pressed", String(captionsOn));
+    captionBox.hidden = !captionsOn;
+    if (captionsOn) updateCaptionText(lastActiveIndex);
   });
 
   volumeSlider.addEventListener("input", () => {
@@ -278,17 +328,37 @@ function initPlayer() {
     speedToggle.textContent = `${rate}×`;
   });
 
-  function highlightActiveSegment(currentTime) {
-    document.querySelectorAll(".segment").forEach((segEl) => {
-      const index = Number(segEl.dataset.index);
+  function activeSegmentIndexAt(currentTime) {
+    for (let index = 0; index < currentSegments.length; index++) {
       const segment = currentSegments[index];
-      if (!segment || segment.audio_start_seconds === null) return;
+      if (segment.audio_start_seconds === null || segment.audio_start_seconds === undefined) {
+        continue;
+      }
       const next = currentSegments[index + 1];
       const nextStart =
-        next && next.audio_start_seconds !== null ? next.audio_start_seconds : Infinity;
-      const isActive = currentTime >= segment.audio_start_seconds && currentTime < nextStart;
-      segEl.classList.toggle("active", isActive);
+        next && next.audio_start_seconds !== null && next.audio_start_seconds !== undefined
+          ? next.audio_start_seconds
+          : Infinity;
+      if (currentTime >= segment.audio_start_seconds && currentTime < nextStart) return index;
+    }
+    return -1;
+  }
+
+  function updateCaptionText(index) {
+    const segment = currentSegments[index];
+    captionText.textContent = segment ? segment.narration : "";
+  }
+
+  function updateActiveSegment(currentTime) {
+    const index = activeSegmentIndexAt(currentTime);
+    if (index === lastActiveIndex) return;
+    lastActiveIndex = index;
+
+    document.querySelectorAll(".segment").forEach((segEl) => {
+      segEl.classList.toggle("active", Number(segEl.dataset.index) === index);
     });
+
+    if (captionsOn) updateCaptionText(index);
   }
 
   return {

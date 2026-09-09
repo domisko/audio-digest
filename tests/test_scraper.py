@@ -2,12 +2,13 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from audio_digest.models import Article
 from audio_digest.scraper.extractor import needs_full_text
 from audio_digest.scraper.feeds import FeedSource
-from audio_digest.scraper.pipeline import select_articles
-from audio_digest.scraper.rss import fetch_feed
+from audio_digest.scraper.pipeline import fetch_articles, select_articles
+from audio_digest.scraper.rss import RawEntry, fetch_feed
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -44,6 +45,66 @@ def test_needs_full_text_short_summary() -> None:
 
 def test_needs_full_text_long_summary() -> None:
     assert needs_full_text("x" * 500) is False
+
+
+def test_fetch_articles_skips_video_bulletin_urls() -> None:
+    source = FeedSource(
+        name="euronews", display_name="Euronews", url="ignored", category="general_news"
+    )
+    entries = [
+        RawEntry(
+            source=source,
+            title="Latest news bulletin",
+            url="https://www.euronews.com/video/2026/09/09/latest-news-bulletin",
+            published_at=datetime.now(UTC),
+            summary_raw="x" * 200,
+        ),
+        RawEntry(
+            source=source,
+            title="A real article",
+            url="https://www.euronews.com/2026/09/09/a-real-article",
+            published_at=datetime.now(UTC),
+            summary_raw="x" * 200,
+        ),
+    ]
+
+    with (
+        patch("audio_digest.scraper.pipeline.fetch_feed", return_value=entries),
+        patch("audio_digest.scraper.pipeline.extract_full_text", return_value=None),
+    ):
+        articles = fetch_articles(sources=[source])
+
+    assert len(articles) == 1
+    assert articles[0].title == "A real article"
+
+
+def test_fetch_articles_skips_near_empty_entries() -> None:
+    source = FeedSource(name="thin", display_name="Thin", url="ignored", category="general_news")
+    entries = [
+        RawEntry(
+            source=source,
+            title="Just a stub",
+            url="https://example.com/stub",
+            published_at=datetime.now(UTC),
+            summary_raw="Too short",
+        ),
+        RawEntry(
+            source=source,
+            title="A real article",
+            url="https://example.com/real",
+            published_at=datetime.now(UTC),
+            summary_raw="x" * 200,
+        ),
+    ]
+
+    with (
+        patch("audio_digest.scraper.pipeline.fetch_feed", return_value=entries),
+        patch("audio_digest.scraper.pipeline.extract_full_text", return_value=None),
+    ):
+        articles = fetch_articles(sources=[source])
+
+    assert len(articles) == 1
+    assert articles[0].title == "A real article"
 
 
 def _article(source: str, minutes_ago: int) -> Article:
