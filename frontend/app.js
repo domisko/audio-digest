@@ -9,9 +9,6 @@ const el = {
   error: document.getElementById("state-error"),
   digest: document.getElementById("digest"),
   date: document.getElementById("date"),
-  player: document.getElementById("player"),
-  intro: document.getElementById("intro"),
-  outro: document.getElementById("outro"),
   segments: document.getElementById("segments"),
 };
 
@@ -29,9 +26,9 @@ function renderSegment(segment) {
   heading.textContent = segment.headline;
   wrapper.appendChild(heading);
 
-  const narration = document.createElement("p");
-  narration.textContent = segment.narration;
-  wrapper.appendChild(narration);
+  const summary = document.createElement("p");
+  summary.textContent = segment.summary_short;
+  wrapper.appendChild(summary);
 
   if (segment.tone_axis && segment.tone_score !== null && segment.tone_score !== undefined) {
     wrapper.appendChild(renderToneScale(segment.tone_axis, segment.tone_score));
@@ -86,6 +83,100 @@ function renderToneScale(axis, score) {
   return tone;
 }
 
+// --- Custom audio player ---
+// Wraps a hidden native <audio> element with our own play button and a
+// draggable/clickable progress bar, since native player chrome can't be
+// restyled consistently across browsers.
+
+function initPlayer() {
+  const audio = document.getElementById("audio");
+  const player = document.getElementById("player");
+  const toggle = document.getElementById("play-toggle");
+  const iconPlay = document.getElementById("icon-play");
+  const iconPause = document.getElementById("icon-pause");
+  const track = document.getElementById("progress-track");
+  const fill = document.getElementById("progress-fill");
+  const handle = document.getElementById("progress-handle");
+  const timeCurrent = document.getElementById("time-current");
+  const timeDuration = document.getElementById("time-duration");
+
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return "0:00";
+    const total = Math.floor(seconds);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function setProgress(ratio) {
+    const pct = Math.max(0, Math.min(1, ratio)) * 100;
+    fill.style.width = `${pct}%`;
+    handle.style.left = `${pct}%`;
+  }
+
+  toggle.addEventListener("click", () => {
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  });
+
+  audio.addEventListener("play", () => {
+    player.classList.add("playing");
+    iconPlay.hidden = true;
+    iconPause.hidden = false;
+    toggle.setAttribute("aria-label", "Pausieren");
+  });
+
+  audio.addEventListener("pause", () => {
+    player.classList.remove("playing");
+    iconPlay.hidden = false;
+    iconPause.hidden = true;
+    toggle.setAttribute("aria-label", "Abspielen");
+  });
+
+  audio.addEventListener("loadedmetadata", () => {
+    timeDuration.textContent = formatTime(audio.duration);
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    timeCurrent.textContent = formatTime(audio.currentTime);
+    if (audio.duration) {
+      setProgress(audio.currentTime / audio.duration);
+    }
+  });
+
+  audio.addEventListener("ended", () => {
+    setProgress(0);
+  });
+
+  function seekToClientX(clientX) {
+    if (!audio.duration) return;
+    const rect = track.getBoundingClientRect();
+    const ratio = (clientX - rect.left) / rect.width;
+    audio.currentTime = Math.max(0, Math.min(1, ratio)) * audio.duration;
+  }
+
+  track.addEventListener("click", (e) => seekToClientX(e.clientX));
+
+  let dragging = false;
+  track.addEventListener("pointerdown", (e) => {
+    dragging = true;
+    seekToClientX(e.clientX);
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (dragging) seekToClientX(e.clientX);
+  });
+  window.addEventListener("pointerup", () => {
+    dragging = false;
+  });
+
+  return { setSrc: (src) => (audio.src = src) };
+}
+
+const player = initPlayer();
+
 async function loadDigest() {
   showState("loading");
   try {
@@ -114,9 +205,7 @@ function render(result) {
     month: "long",
     day: "numeric",
   });
-  el.player.src = `${API_BASE}/api/digest/today/audio`;
-  el.intro.textContent = result.script.intro;
-  el.outro.textContent = result.script.outro;
+  player.setSrc(`${API_BASE}/api/digest/today/audio`);
 
   el.segments.innerHTML = "";
   for (const segment of result.script.segments) {

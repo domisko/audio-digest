@@ -34,6 +34,7 @@ def test_summarize_parses_valid_script() -> None:
                 "source_article_url": "https://example.com/a",
                 "headline": "First up",
                 "narration": "Here's what happened.",
+                "summary_short": "Something happened.",
                 "tone_axis": "emotional vs. sachlich",
                 "tone_score": 30,
             }

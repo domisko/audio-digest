@@ -26,6 +26,10 @@ class ScriptSegment(BaseModel):
     source_article_url: HttpUrl
     headline: str
     narration: str
+    # A single condensed sentence for the frontend's read view, distinct from
+    # `narration` (the full spoken-audio paragraph) — the two audiences (skim
+    # vs. listen) want different lengths.
+    summary_short: str
     # Subjective, model-generated tone observation — never framed as fact-checking.
     tone_axis: str | None = None
     tone_score: int | None = None

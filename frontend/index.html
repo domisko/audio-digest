@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div class="background" aria-hidden="true">
+      <div class="blob blob-a"></div>
+      <div class="blob blob-b"></div>
+      <div class="blob blob-c"></div>
+    </div>
+
     <main>
       <header>
         <h1>Audio Daily Digest</h1>
@@ -24,13 +30,29 @@
       </section>
 
       <section id="digest" hidden>
-        <audio id="player" controls></audio>
+        <audio id="audio" preload="metadata"></audio>
+        <div class="player" id="player">
+          <button id="play-toggle" class="play-btn" type="button" aria-label="Abspielen">
+            <svg id="icon-play" viewBox="0 0 24 24" width="20" height="20">
+              <path d="M8 5v14l11-7z" fill="currentColor" />
+            </svg>
+            <svg id="icon-pause" viewBox="0 0 24 24" width="20" height="20" hidden>
+              <path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" />
+            </svg>
+          </button>
+          <div class="player-body">
+            <div class="progress-track" id="progress-track">
+              <div class="progress-fill" id="progress-fill"></div>
+              <div class="progress-handle" id="progress-handle"></div>
+            </div>
+            <div class="time-row">
+              <span id="time-current">0:00</span>
+              <span id="time-duration">0:00</span>
+            </div>
+          </div>
+        </div>
 
-        <article>
-          <p id="intro" class="script-line intro"></p>
-          <div id="segments"></div>
-          <p id="outro" class="script-line outro"></p>
-        </article>
+        <article id="segments"></article>
       </section>
     </main>
 

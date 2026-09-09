@@ -30,7 +30,10 @@ def _digest_result() -> DigestResult:
             intro="Hi",
             segments=[
                 ScriptSegment(
-                    source_article_url="https://example.com/a", headline="H", narration="N"
+                    source_article_url="https://example.com/a",
+                    headline="H",
+                    narration="N",
+                    summary_short="S",
                 )
             ],
             outro="Bye",

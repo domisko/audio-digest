@@ -31,7 +31,12 @@ def _script() -> Script:
         digest_date=date.today(),
         intro="Hi",
         segments=[
-            ScriptSegment(source_article_url="https://example.com/a", headline="H", narration="N")
+            ScriptSegment(
+                source_article_url="https://example.com/a",
+                headline="H",
+                narration="N",
+                summary_short="S",
+            )
         ],
         outro="Bye",
         full_text="Hi N Bye",
