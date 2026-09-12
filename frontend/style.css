@@ -248,6 +248,12 @@ header h1 {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  gap: 0;
+  transition: gap 0.2s ease;
+}
+
+.volume:hover,
+.volume:focus-within {
   gap: 0.4rem;
 }
 
@@ -266,9 +272,33 @@ header h1 {
 }
 
 #volume-slider {
-  width: 72px;
+  width: 0;
+  opacity: 0;
   accent-color: var(--accent);
   cursor: pointer;
+  pointer-events: none;
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* Reveal the slider on hover/focus rather than showing it permanently —
+   frees up horizontal space for the waveform, which matters most on
+   narrow screens. Keyboard users get it via :focus-within too. */
+.volume:hover #volume-slider,
+.volume:focus-within #volume-slider {
+  width: 72px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* On touch devices, hover doesn't really exist and screen width is
+   scarce — the phone's own hardware volume controls make an in-page
+   slider redundant, so drop it entirely and keep just the mute toggle. */
+@media (max-width: 480px) {
+  #volume-slider {
+    display: none;
+  }
 }
 
 .speed-btn {
