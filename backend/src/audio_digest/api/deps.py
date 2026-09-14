@@ -5,11 +5,21 @@ from functools import lru_cache
 from fastapi import Header, HTTPException
 
 from audio_digest.config import Settings
+from audio_digest.settings_store import load_overrides
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]  # values are loaded from the environment/.env
+
+
+def get_effective_settings() -> Settings:
+    """Settings with any runtime overrides (from the settings API) applied on top."""
+    settings = get_settings()
+    overrides = load_overrides(settings.output_dir)
+    if not overrides:
+        return settings
+    return settings.model_copy(update=overrides)
 
 
 def require_api_key(x_api_key: str | None = Header(default=None)) -> None:

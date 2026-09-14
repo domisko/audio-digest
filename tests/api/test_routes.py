@@ -89,3 +89,53 @@ def test_trigger_digest_accepts_correct_api_key(client: TestClient) -> None:
         response = client.post("/api/trigger-digest", headers={"X-API-Key": "test-api-key"})
 
     assert response.status_code == 202
+
+
+def test_get_settings_requires_api_key(client: TestClient) -> None:
+    response = client.get("/api/settings")
+
+    assert response.status_code == 401
+
+
+def test_get_settings_returns_defaults(client: TestClient) -> None:
+    response = client.get("/api/settings", headers={"X-API-Key": "test-api-key"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "summarizer_provider": "claude",
+        "openrouter_model": "google/gemini-2.5-flash",
+        "tts_provider": "edge",
+        "edge_tts_voice": "de-DE-SeraphinaMultilingualNeural",
+    }
+
+
+def test_put_settings_requires_api_key(client: TestClient) -> None:
+    response = client.put("/api/settings", json={"tts_provider": "openai"})
+
+    assert response.status_code == 401
+
+
+def test_put_settings_persists_and_merges_partial_update(client: TestClient) -> None:
+    first = client.put(
+        "/api/settings",
+        headers={"X-API-Key": "test-api-key"},
+        json={"tts_provider": "openai"},
+    )
+    assert first.status_code == 200
+    assert first.json()["tts_provider"] == "openai"
+    # Untouched fields keep their (default) value.
+    assert first.json()["summarizer_provider"] == "claude"
+
+    second = client.put(
+        "/api/settings",
+        headers={"X-API-Key": "test-api-key"},
+        json={"summarizer_provider": "openrouter"},
+    )
+    assert second.status_code == 200
+    # Previous override survives a later, unrelated partial update.
+    assert second.json()["tts_provider"] == "openai"
+    assert second.json()["summarizer_provider"] == "openrouter"
+
+    readback = client.get("/api/settings", headers={"X-API-Key": "test-api-key"})
+    assert readback.json()["tts_provider"] == "openai"
+    assert readback.json()["summarizer_provider"] == "openrouter"

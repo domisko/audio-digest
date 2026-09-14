@@ -460,3 +460,114 @@ function render(result) {
 }
 
 loadDigest();
+
+// --- Settings panel: gated by the same X-API-Key the trigger endpoint uses.
+// The key is only ever kept in this browser's localStorage and sent as a
+// header to /api/settings — never put in the URL. Hidden entirely in demo
+// mode (see IS_DEMO above) so a shared read-only link never exposes it.
+function initSettingsPanel() {
+  if (IS_DEMO) return;
+
+  const toggle = document.getElementById("settings-toggle");
+  const panel = document.getElementById("settings-panel");
+  const locked = document.getElementById("settings-locked");
+  const unlocked = document.getElementById("settings-unlocked");
+  const keyInput = document.getElementById("settings-key-input");
+  const keyError = document.getElementById("settings-key-error");
+  const unlockBtn = document.getElementById("settings-unlock");
+  const lockBtn = document.getElementById("settings-lock");
+  const saveBtn = document.getElementById("settings-save");
+  const savedLabel = document.getElementById("settings-saved");
+  const copyDemoBtn = document.getElementById("settings-copy-demo");
+  const demoUrlInput = document.getElementById("settings-demo-url");
+
+  const fields = {
+    summarizer_provider: document.getElementById("settings-summarizer-provider"),
+    openrouter_model: document.getElementById("settings-openrouter-model"),
+    tts_provider: document.getElementById("settings-tts-provider"),
+    edge_tts_voice: document.getElementById("settings-edge-voice"),
+  };
+
+  const STORAGE_KEY = "audio-digest-api-key";
+  let apiKey = localStorage.getItem(STORAGE_KEY) || "";
+
+  const demoUrl = new URL(window.location.href);
+  demoUrl.search = "?demo";
+  demoUrlInput.value = demoUrl.toString();
+
+  toggle.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden && apiKey) tryUnlock(apiKey);
+  });
+
+  copyDemoBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(demoUrlInput.value);
+      copyDemoBtn.textContent = "Kopiert ✓";
+      setTimeout(() => (copyDemoBtn.textContent = "Kopieren"), 1500);
+    } catch {
+      demoUrlInput.select();
+    }
+  });
+
+  async function tryUnlock(key) {
+    try {
+      const response = await fetch(`${API_BASE}/api/settings`, {
+        headers: { "X-API-Key": key },
+      });
+      if (!response.ok) {
+        keyError.hidden = false;
+        locked.hidden = false;
+        unlocked.hidden = true;
+        return;
+      }
+      const data = await response.json();
+      apiKey = key;
+      localStorage.setItem(STORAGE_KEY, key);
+      keyError.hidden = true;
+      locked.hidden = true;
+      unlocked.hidden = false;
+      for (const [name, input] of Object.entries(fields)) {
+        if (data[name] !== undefined && data[name] !== null) input.value = data[name];
+      }
+    } catch (err) {
+      console.error("Failed to load settings", err);
+      keyError.hidden = false;
+    }
+  }
+
+  unlockBtn.addEventListener("click", () => tryUnlock(keyInput.value.trim()));
+  keyInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryUnlock(keyInput.value.trim());
+  });
+
+  lockBtn.addEventListener("click", () => {
+    apiKey = "";
+    localStorage.removeItem(STORAGE_KEY);
+    keyInput.value = "";
+    locked.hidden = false;
+    unlocked.hidden = true;
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    const body = Object.fromEntries(
+      Object.entries(fields).map(([name, input]) => [name, input.value.trim() || null]),
+    );
+    try {
+      const response = await fetch(`${API_BASE}/api/settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) return;
+      savedLabel.hidden = false;
+      setTimeout(() => (savedLabel.hidden = true), 1500);
+    } catch (err) {
+      console.error("Failed to save settings", err);
+    }
+  });
+
+  if (apiKey) tryUnlock(apiKey);
+}
+
+initSettingsPanel();

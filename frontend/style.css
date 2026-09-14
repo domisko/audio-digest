@@ -137,23 +137,118 @@ header h1 {
   font-size: 0.9rem;
 }
 
-.github-link {
+.header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.github-link,
+.settings-btn {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
+  border: none;
   border-radius: 8px;
   color: var(--muted);
+  background: transparent;
+  cursor: pointer;
   transition:
     color 0.15s ease,
     background 0.15s ease;
 }
 
-.github-link:hover {
+.github-link:hover,
+.settings-btn:hover {
   color: var(--fg);
   background: var(--card);
+}
+
+/* Demo mode is a read-only share link (e.g. for a recruiter) — settings
+   access has no place there, on top of not being reachable without the key. */
+.demo-mode .settings-btn {
+  display: none;
+}
+
+.settings-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin: 0.75rem 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.settings-panel label {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.settings-panel input[type="text"],
+.settings-panel input[type="password"],
+.settings-panel select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.settings-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.settings-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-panel button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.settings-panel button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.settings-error {
+  color: #e05b5b;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.settings-saved {
+  color: var(--accent);
+  font-size: 0.8rem;
+  align-self: center;
+}
+
+.settings-demo-link {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.settings-lock-btn {
+  align-self: flex-start;
 }
 
 .state {
