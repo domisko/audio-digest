@@ -3,8 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Override at deploy time (e.g. via a build step) if the API isn't same-origin. -->
-    <meta name="api-base" content="http://localhost:8000" />
+    <!-- Empty = same-origin (the default now that the frontend is served by the API
+         container itself). Set to e.g. http://localhost:8000 only when serving this
+         file separately during local frontend-only development. -->
+    <meta name="api-base" content="" />
     <title>Audio Daily Digest</title>
     <link rel="stylesheet" href="style.css?v=7" />
   </head>

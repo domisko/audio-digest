@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 COPY backend/src ./backend/src
+COPY frontend ./frontend
 
 # Playwright's browser binaries are NOT installed here — the extractor only
 # falls back to Playwright for sources explicitly flagged needs_playwright=True.

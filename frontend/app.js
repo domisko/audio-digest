@@ -5,6 +5,12 @@
 const API_BASE = document.querySelector('meta[name="api-base"]').content;
 const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2];
 
+// Demo mode: a plain `?demo` URL flag (no token — there's nothing sensitive
+// behind it, it just hides controls beyond playback for anyone visiting a
+// shared link, e.g. a recruiter). Any future settings/admin UI gates on this.
+const IS_DEMO = new URLSearchParams(window.location.search).has("demo");
+document.body.classList.toggle("demo-mode", IS_DEMO);
+
 // --- Background: blobs drift on their own (CSS keyframes) and additionally
 // ease toward the pointer position for a subtle interactive parallax, without
 // fighting the CSS animation since the pointer offset is applied to a wrapper
@@ -185,7 +191,7 @@ function renderTagFilter(segments) {
   const tags = [...new Set(segments.flatMap((s) => s.tags || []))];
   el.tagFilter.innerHTML = "";
 
-  if (tags.length === 0) {
+  if (IS_DEMO || tags.length === 0) {
     el.tagFilter.hidden = true;
     return;
   }
