@@ -11,18 +11,11 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  push-images:
+  push-image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        include:
-          - image: audio-digest-api
-            dockerfile: backend/Dockerfile
-          - image: audio-digest-frontend
-            dockerfile: frontend/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/audio-digest
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
@@ -47,7 +40,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -42,16 +42,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend image
+      - name: Build image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: backend/Dockerfile
-          push: false
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: frontend/Dockerfile
           push: false
