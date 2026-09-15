@@ -244,17 +244,18 @@ header h1 {
   font-variant-numeric: tabular-nums;
 }
 
-.volume {
+.control-group {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 0;
-  transition: gap 0.2s ease;
+  gap: 0.4rem;
 }
 
-.volume:hover,
-.volume:focus-within {
-  gap: 0.4rem;
+.volume {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
 
 .mute-btn {
@@ -271,32 +272,51 @@ header h1 {
   color: var(--fg);
 }
 
-#volume-slider {
-  width: 0;
+/* Pops up above the button instead of expanding inline, so hovering it
+   never shifts or narrows the waveform next to it. */
+.volume-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-bottom: 0.6rem;
   opacity: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
   pointer-events: none;
-  transition:
-    width 0.2s ease,
-    opacity 0.2s ease;
+  transition: opacity 0.15s ease;
 }
 
-/* Reveal the slider on hover/focus rather than showing it permanently —
-   frees up horizontal space for the waveform, which matters most on
-   narrow screens. Keyboard users get it via :focus-within too. */
-.volume:hover #volume-slider,
-.volume:focus-within #volume-slider {
-  width: 72px;
+.volume:hover .volume-popup,
+.volume:focus-within .volume-popup {
   opacity: 1;
   pointer-events: auto;
+}
+
+.volume-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0.6rem 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+#volume-slider {
+  position: relative;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 6px;
+  height: 72px;
+  margin: 0.6rem 0.4rem;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* On touch devices, hover doesn't really exist and screen width is
    scarce — the phone's own hardware volume controls make an in-page
    slider redundant, so drop it entirely and keep just the mute toggle. */
 @media (max-width: 480px) {
-  #volume-slider {
+  .volume-popup {
     display: none;
   }
 }
