@@ -244,6 +244,16 @@ header h1 {
   font-variant-numeric: tabular-nums;
 }
 
+/* Sits below the waveform row, so expanding the volume slider here never
+   touches the waveform's width — same idea as YouTube's control bar living
+   under the (separate) progress bar. */
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
 .control-group {
   flex: 0 0 auto;
   display: flex;
@@ -252,10 +262,16 @@ header h1 {
 }
 
 .volume {
-  position: relative;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  gap: 0;
+  transition: gap 0.2s ease;
+}
+
+.volume:hover,
+.volume:focus-within {
+  gap: 0.5rem;
 }
 
 .mute-btn {
@@ -272,51 +288,29 @@ header h1 {
   color: var(--fg);
 }
 
-/* Pops up above the button instead of expanding inline, so hovering it
-   never shifts or narrows the waveform next to it. */
-.volume-popup {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding-bottom: 0.6rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.volume:hover .volume-popup,
-.volume:focus-within .volume-popup {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.volume-popup::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 0.6rem 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
 #volume-slider {
-  position: relative;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 6px;
-  height: 72px;
-  margin: 0.6rem 0.4rem;
+  width: 0;
+  opacity: 0;
   accent-color: var(--accent);
   cursor: pointer;
+  pointer-events: none;
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.volume:hover #volume-slider,
+.volume:focus-within #volume-slider {
+  width: 80px;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* On touch devices, hover doesn't really exist and screen width is
    scarce — the phone's own hardware volume controls make an in-page
    slider redundant, so drop it entirely and keep just the mute toggle. */
 @media (max-width: 480px) {
-  .volume-popup {
+  #volume-slider {
     display: none;
   }
 }

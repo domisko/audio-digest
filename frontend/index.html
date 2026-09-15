@@ -8,7 +8,7 @@
          file separately during local frontend-only development. -->
     <meta name="api-base" content="" />
     <title>Audio Daily Digest</title>
-    <link rel="stylesheet" href="style.css?v=8" />
+    <link rel="stylesheet" href="style.css?v=9" />
   </head>
   <body>
     <div class="background" aria-hidden="true">
@@ -71,6 +71,9 @@
                 <span id="time-duration">0:00</span>
               </div>
             </div>
+          </div>
+
+          <div class="controls-row">
             <div class="control-group">
               <button id="speed-toggle" class="speed-btn" type="button" aria-label="Wiedergabegeschwindigkeit">
                 1×
@@ -100,20 +103,18 @@
                   />
                 </svg>
               </button>
-              <div class="volume-popup">
-                <input
-                  id="volume-slider"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value="1"
-                  aria-label="Lautstärke"
-                  orient="vertical"
-                />
-              </div>
+              <input
+                id="volume-slider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value="1"
+                aria-label="Lautstärke"
+              />
             </div>
           </div>
+
           <div id="caption-box" class="caption-box" hidden>
             <p id="caption-text"></p>
           </div>
