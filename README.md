@@ -34,8 +34,7 @@ public deployment — no reason to advertise the trigger endpoint to anonymous v
   background; intended to be called by cron/a scheduler rather than a user
 
 The read endpoints (`/today`, `/today/text`, `/today/audio`) are public and unauthenticated —
-the frontend is meant to be a shareable public page. Visiting it with `?demo` in the URL hides
-content-selection controls (e.g. the tag filter), for sharing a read-only link.
+the frontend is meant to be a shareable public page.
 
 ## Configuration
 
