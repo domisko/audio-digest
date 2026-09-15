@@ -72,6 +72,25 @@ def test_get_today_digest_returns_saved_digest(client: TestClient, tmp_path: Pat
     assert response.json()["script"]["intro"] == "Hi"
 
 
+def test_get_today_text_returns_404_when_missing(client: TestClient) -> None:
+    response = client.get("/api/digest/today/text")
+
+    assert response.status_code == 404
+
+
+def test_get_today_text_returns_newsletter_text(client: TestClient, tmp_path: Path) -> None:
+    from audio_digest.storage import save_latest
+
+    save_latest(_digest_result(), tmp_path)
+
+    response = client.get("/api/digest/today/text")
+
+    assert response.status_code == 200
+    assert "Hi" in response.text
+    assert "H" in response.text
+    assert "Bye" in response.text
+
+
 def test_trigger_digest_requires_api_key(client: TestClient) -> None:
     response = client.post("/api/trigger-digest")
 

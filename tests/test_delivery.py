@@ -14,12 +14,16 @@ async def test_send_digest_sends_audio_and_returns_message_id(tmp_path: Path) ->
 
     mock_message = MagicMock(message_id=42)
     mock_bot = AsyncMock()
+    mock_bot.send_message = AsyncMock()
     mock_bot.send_audio = AsyncMock(return_value=mock_message)
     mock_bot.__aenter__ = AsyncMock(return_value=mock_bot)
     mock_bot.__aexit__ = AsyncMock(return_value=False)
 
     with patch("audio_digest.delivery.telegram.telegram.Bot", return_value=mock_bot):
-        message_id = await send_digest("token", "chat-id", audio_path, caption="Digest for today")
+        message_id = await send_digest(
+            "token", "chat-id", audio_path, caption="Digest for today", text="Guten Morgen..."
+        )
 
     assert message_id == "42"
+    mock_bot.send_message.assert_awaited_once_with(chat_id="chat-id", text="Guten Morgen...")
     mock_bot.send_audio.assert_awaited_once()

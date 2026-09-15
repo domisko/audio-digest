@@ -12,3 +12,4 @@ output/*
 node_modules/
 dist/
 uv.lock.bak
+.DS_Store

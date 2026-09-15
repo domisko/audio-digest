@@ -10,6 +10,7 @@ from mutagen.mp3 import MP3
 from audio_digest.config import Settings
 from audio_digest.delivery.telegram import send_digest
 from audio_digest.models import Article, DigestResult, Script
+from audio_digest.newsletter import render_newsletter_text
 from audio_digest.scraper.pipeline import fetch_articles, select_articles
 from audio_digest.storage import latest_audio_path, save_latest
 from audio_digest.summarizer import get_summarizer
@@ -117,6 +118,7 @@ async def run_daily_digest(settings: Settings) -> DigestResult:
                 settings.telegram_chat_id,
                 audio_path,
                 caption=f"Digest for {now.date().isoformat()}",
+                text=render_newsletter_text(script),
             )
             delivered = True
         except Exception:

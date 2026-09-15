@@ -3,11 +3,12 @@
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 
 from audio_digest.api.deps import get_settings, require_api_key
 from audio_digest.config import Settings
 from audio_digest.models import DigestResult
+from audio_digest.newsletter import render_newsletter_text
 from audio_digest.pipeline import run_daily_digest
 from audio_digest.storage import latest_audio_path, load_latest
 
@@ -22,6 +23,15 @@ def get_today_digest(settings: Settings = Depends(get_settings)) -> DigestResult
     if result is None:
         raise HTTPException(status_code=404, detail="No digest has been generated yet")
     return result
+
+
+@router.get("/digest/today/text", response_class=PlainTextResponse)
+def get_today_text(settings: Settings = Depends(get_settings)) -> str:
+    """Plain-text newsletter version of today's digest — same content as the audio."""
+    result = load_latest(settings.output_dir)
+    if result is None:
+        raise HTTPException(status_code=404, detail="No digest has been generated yet")
+    return render_newsletter_text(result.script)
 
 
 @router.get("/digest/today/audio")
