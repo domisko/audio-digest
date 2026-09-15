@@ -9,7 +9,10 @@ from fastapi.staticfiles import StaticFiles
 from audio_digest.api.deps import get_settings
 from audio_digest.api.routes import router
 
-app = FastAPI(title="Audio Daily Digest")
+# Swagger UI / OpenAPI schema are disabled — this runs on a public homelab
+# deployment, and there's no reason to advertise the trigger endpoint's
+# existence and expected header to anonymous visitors.
+app = FastAPI(title="Audio Daily Digest", docs_url=None, redoc_url=None, openapi_url=None)
 
 _settings = get_settings()
 app.add_middleware(
