@@ -9,7 +9,7 @@ from mutagen.mp3 import MP3
 
 from audio_digest.config import Settings
 from audio_digest.delivery.telegram import send_digest
-from audio_digest.models import Article, DigestResult, Script
+from audio_digest.models import Article, DigestResult, Script, SourceRef
 from audio_digest.newsletter import render_newsletter_text
 from audio_digest.scraper.pipeline import fetch_articles, select_articles
 from audio_digest.storage import latest_audio_path, save_latest
@@ -20,36 +20,55 @@ from audio_digest.tts.base import TextToSpeech
 logger = logging.getLogger(__name__)
 
 # Keeps the spoken digest around ~5 minutes rather than growing with however
-# many articles happened to be published that day.
-MAX_DIGEST_ARTICLES = 8
+# many articles happened to be published that day. More articles go in than
+# segments come out (see MAX_DIGEST_SEGMENTS) so the model has room to merge
+# several outlets' reports of the same event into one segment.
+MAX_DIGEST_ARTICLES = 12
 
 
 class NoArticlesError(RuntimeError):
     """Raised when no articles were found — better to fail loudly than send an empty digest."""
 
 
+def _resolve_source_name(url: str, by_url: dict[str, str]) -> str | None:
+    """Look up an outlet name by URL, falling back to a prefix match since the
+    model occasionally echoes a long URL back slightly truncated.
+    """
+    name = by_url.get(url)
+    if name is not None:
+        return name
+    return next(
+        (
+            display_name
+            for known_url, display_name in by_url.items()
+            if known_url.startswith(url) or url.startswith(known_url)
+        ),
+        None,
+    )
+
+
 def _attach_source_names(script: Script, articles: list[Article]) -> None:
-    """Match each segment back to its Article by URL to fill in source_name.
+    """Match each segment's article URLs back to their Articles to fill in
+    `source_name` and `sources`.
 
     The LLM only ever sees article URLs, not our internal source labels, so
     this is resolved locally rather than trusted from the model's output.
-    Falls back to a prefix match since the model occasionally echoes a long
-    URL back slightly truncated.
     """
     by_url = {str(article.url): article.source_display_name for article in articles}
     for segment in script.segments:
         segment_url = str(segment.source_article_url)
-        name = by_url.get(segment_url)
-        if name is None:
-            name = next(
-                (
-                    display_name
-                    for url, display_name in by_url.items()
-                    if url.startswith(segment_url) or segment_url.startswith(url)
-                ),
-                None,
-            )
-        segment.source_name = name
+        segment.source_name = _resolve_source_name(segment_url, by_url)
+
+        sources: list[SourceRef] = []
+        seen_urls: set[str] = set()
+        for url in [segment.source_article_url, *segment.also_covered_by_urls]:
+            url_str = str(url)
+            name = _resolve_source_name(url_str, by_url)
+            if name is None or url_str in seen_urls:
+                continue
+            seen_urls.add(url_str)
+            sources.append(SourceRef(name=name, url=url))
+        segment.sources = sources
 
 
 def _mp3_duration_seconds(path: Path) -> float:

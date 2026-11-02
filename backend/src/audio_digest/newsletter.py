@@ -10,7 +10,9 @@ def render_newsletter_text(script: Script) -> str:
     for segment in script.segments:
         lines.append(segment.headline)
         lines.append(segment.summary_short)
-        if segment.source_name:
+        if len(segment.sources) > 1:
+            lines.extend(f"({source.name}) {source.url}" for source in segment.sources)
+        elif segment.source_name:
             lines.append(f"({segment.source_name}) {segment.source_article_url}")
         else:
             lines.append(str(segment.source_article_url))

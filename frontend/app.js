@@ -122,39 +122,66 @@ function renderActions(segment) {
     actions.appendChild(jumpBtn);
   }
 
-  if (segment.source_name) {
-    const badge = document.createElement("span");
-    badge.className = "source-badge";
+  // Older digests only have source_name/source_article_url; newer ones list
+  // every outlet that covered the story in `sources`.
+  const sources =
+    segment.sources && segment.sources.length
+      ? segment.sources
+      : segment.source_name
+        ? [{ name: segment.source_name, url: segment.source_article_url }]
+        : [];
 
-    const favicon = document.createElement("img");
-    favicon.alt = "";
-    favicon.width = 14;
-    favicon.height = 14;
-    favicon.addEventListener("error", () => favicon.remove());
-    try {
-      const hostname = new URL(segment.source_article_url).hostname;
-      favicon.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
-    } catch {
-      favicon.remove();
-    }
-    badge.appendChild(favicon);
+  const sourceList = document.createElement("div");
+  sourceList.className = "source-list";
+  for (const source of sources) {
+    sourceList.appendChild(renderSource(source));
+  }
+  if (sources.length) actions.appendChild(sourceList);
 
-    const name = document.createElement("span");
-    name.textContent = segment.source_name;
-    badge.appendChild(name);
-
-    actions.appendChild(badge);
+  if (!sources.length) {
+    actions.appendChild(renderArticleLink(segment.source_article_url, "Mehr erfahren ↗"));
   }
 
+  return actions;
+}
+
+function renderSource(source) {
+  const item = document.createElement("span");
+  item.className = "source-item";
+
+  const badge = document.createElement("span");
+  badge.className = "source-badge";
+
+  const favicon = document.createElement("img");
+  favicon.alt = "";
+  favicon.width = 14;
+  favicon.height = 14;
+  favicon.addEventListener("error", () => favicon.remove());
+  try {
+    const hostname = new URL(source.url).hostname;
+    favicon.src = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+  } catch {
+    favicon.remove();
+  }
+  badge.appendChild(favicon);
+
+  const name = document.createElement("span");
+  name.textContent = source.name;
+  badge.appendChild(name);
+  item.appendChild(badge);
+
+  item.appendChild(renderArticleLink(source.url, "Mehr erfahren ↗"));
+  return item;
+}
+
+function renderArticleLink(url, label) {
   const link = document.createElement("a");
   link.className = "article-link";
-  link.href = segment.source_article_url;
+  link.href = url;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
-  link.textContent = "Mehr erfahren ↗";
-  actions.appendChild(link);
-
-  return actions;
+  link.textContent = label;
+  return link;
 }
 
 function renderToneScale(axis, score) {

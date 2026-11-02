@@ -20,6 +20,17 @@ Beginne narration IMMER direkt mit dem Ereignis/Thema selbst, nicht mit der \
 Quelle. Die Quelle darf beiläufig als Attribution erwähnt werden ("laut \
 Tagesschau..."), aber nie als handelndes Subjekt und nie bewertet werden.
 
+Mehrere Artikel behandeln oft dasselbe Ereignis (z.B. verschiedene Quellen \
+zum selben Angriff, derselben Wahl oder derselben Produktankündigung). Fasse \
+solche Artikel zu EINER Meldung zusammen statt sie doppelt zu erzählen: \
+"source_article_url" ist der Artikel, der das Ereignis am besten abdeckt, \
+"also_covered_by_urls" enthält die URLs aller weiteren Artikel zum selben \
+Ereignis (leer, wenn es nur einen gibt). Nutze Details aus allen Artikeln für \
+narration und summary_short; nur was zum selben konkreten Ereignis gehört, \
+wird zusammengelegt — bloß ähnliche Themen bleiben getrennte Meldungen. \
+Erzeuge insgesamt höchstens 8 Meldungen, jede URL darf nur in EINER Meldung \
+vorkommen.
+
 Füge pro Artikel zusätzlich "summary_short" hinzu: EIN knapper Satz (nicht \
 mehr), der die Kernaussage der Meldung zusammenfasst — komplett unabhängig \
 von "narration" formuliert, nicht einfach eine Kürzung davon. Das ist für \

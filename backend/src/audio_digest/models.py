@@ -31,11 +31,24 @@ class WordTiming(BaseModel):
     duration_seconds: float
 
 
+class SourceRef(BaseModel):
+    """One outlet's article behind a segment, for display as a badge + link."""
+
+    name: str
+    url: HttpUrl
+
+
 class ScriptSegment(BaseModel):
     source_article_url: HttpUrl
+    # URLs of further input articles reporting the SAME event, which the model
+    # merged into this one segment instead of giving each its own.
+    also_covered_by_urls: list[HttpUrl] = []
     # Populated by the pipeline (not the LLM) from the matching Article — a
     # human-readable outlet name (e.g. "Euronews") for display next to the link.
     source_name: str | None = None
+    # Populated by the pipeline: every outlet behind this segment, primary
+    # source first (source_article_url, then also_covered_by_urls).
+    sources: list[SourceRef] = []
     headline: str
     narration: str
     # A single condensed sentence for the frontend's read view, distinct from

@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from audio_digest.api.deps import get_settings, require_api_key
@@ -16,9 +16,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+# The "latest" digest and audio live at fixed URLs and get overwritten every
+# run, so browsers/proxies must revalidate (ETag/Last-Modified still make that
+# cheap) — otherwise a heuristic cache keeps serving yesterday's file.
+NO_CACHE_HEADERS = {"Cache-Control": "no-cache"}
+
 
 @router.get("/digest/today", response_model=DigestResult)
-def get_today_digest(settings: Settings = Depends(get_settings)) -> DigestResult:
+def get_today_digest(
+    response: Response, settings: Settings = Depends(get_settings)
+) -> DigestResult:
+    response.headers.update(NO_CACHE_HEADERS)
     result = load_latest(settings.output_dir)
     if result is None:
         raise HTTPException(status_code=404, detail="No digest has been generated yet")
@@ -26,8 +34,9 @@ def get_today_digest(settings: Settings = Depends(get_settings)) -> DigestResult
 
 
 @router.get("/digest/today/text", response_class=PlainTextResponse)
-def get_today_text(settings: Settings = Depends(get_settings)) -> str:
+def get_today_text(response: Response, settings: Settings = Depends(get_settings)) -> str:
     """Plain-text newsletter version of today's digest — same content as the audio."""
+    response.headers.update(NO_CACHE_HEADERS)
     result = load_latest(settings.output_dir)
     if result is None:
         raise HTTPException(status_code=404, detail="No digest has been generated yet")
@@ -39,7 +48,7 @@ def get_today_audio(settings: Settings = Depends(get_settings)) -> FileResponse:
     audio_path = latest_audio_path(settings.output_dir)
     if not audio_path.exists():
         raise HTTPException(status_code=404, detail="No digest audio has been generated yet")
-    return FileResponse(audio_path, media_type="audio/mpeg")
+    return FileResponse(audio_path, media_type="audio/mpeg", headers=NO_CACHE_HEADERS)
 
 
 async def _run_and_log(settings: Settings) -> None:

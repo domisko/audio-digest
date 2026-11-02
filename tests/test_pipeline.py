@@ -227,3 +227,32 @@ async def test_run_daily_digest_survives_telegram_failure(tmp_path: Path) -> Non
         result = await run_daily_digest(settings)
 
         assert result.delivered is False
+
+
+def test_attach_source_names_collects_all_covering_outlets() -> None:
+    other = _article().model_copy(
+        update={"url": "https://other.example/b", "source_display_name": "Other"}
+    )
+    script = Script(
+        digest_date=date.today(),
+        intro="Hi",
+        segments=[
+            ScriptSegment(
+                source_article_url="https://example.com/a",
+                also_covered_by_urls=["https://other.example/b", "https://example.com/a"],
+                headline="H",
+                narration="N",
+                summary_short="S",
+            )
+        ],
+        outro="Bye",
+        full_text="Hi N Bye",
+    )
+    _attach_source_names(script, [_article(), other])
+
+    segment = script.segments[0]
+    assert segment.source_name == "Test"
+    assert [(s.name, str(s.url)) for s in segment.sources] == [
+        ("Test", "https://example.com/a"),
+        ("Other", "https://other.example/b"),
+    ]
