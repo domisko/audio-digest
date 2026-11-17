@@ -11,5 +11,6 @@ output/*
 !output/.gitkeep
 node_modules/
 dist/
+!demo/dist/
 uv.lock.bak
 .DS_Store

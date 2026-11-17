@@ -1,0 +1,553 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1115;
+  --fg: #eaeaea;
+  --muted: #9aa0a6;
+  --accent: #5b8def;
+  --accent-soft: #5b8def33;
+  --card: #1a1d24;
+  --border: #2a2e37;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* --- Animated background --- */
+
+.background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blob-wrap {
+  will-change: transform;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(65px);
+  opacity: 0.38;
+  will-change: transform;
+}
+
+.blob-a {
+  width: 420px;
+  height: 420px;
+  left: -120px;
+  top: -100px;
+  background: var(--accent);
+  animation: drift-a 26s ease-in-out infinite;
+}
+
+.blob-b {
+  width: 380px;
+  height: 380px;
+  right: -140px;
+  top: 20%;
+  background: #a15bef;
+  animation: drift-b 32s ease-in-out infinite;
+}
+
+.blob-c {
+  width: 320px;
+  height: 320px;
+  left: 20%;
+  bottom: -160px;
+  background: #5befc0;
+  animation: drift-c 30s ease-in-out infinite;
+}
+
+@keyframes drift-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(80px, 60px) scale(1.15);
+  }
+}
+
+@keyframes drift-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-60px, 40px) scale(1.1);
+  }
+}
+
+@keyframes drift-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, -50px) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none;
+  }
+}
+
+/* --- Layout --- */
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.25rem;
+}
+
+.date {
+  color: var(--muted);
+  margin: 0 0 2rem;
+  font-size: 0.9rem;
+}
+
+.github-link {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--muted);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.github-link:hover {
+  color: var(--fg);
+  background: var(--card);
+}
+
+.state {
+  color: var(--muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* --- Custom audio player --- */
+
+.player {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.play-btn {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 0 0 0 var(--accent-soft);
+}
+
+.play-btn:hover {
+  transform: scale(1.06);
+}
+
+.play-btn:active {
+  transform: scale(0.96);
+}
+
+.player.playing .play-btn {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.play-btn svg {
+  margin-left: 1px;
+}
+
+.player-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#waveform {
+  cursor: pointer;
+}
+
+#waveform ::part(cursor) {
+  background-color: #fff;
+}
+
+.time-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sits below the waveform row, so expanding the volume slider here never
+   touches the waveform's width — same idea as YouTube's control bar living
+   under the (separate) progress bar. */
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.control-group {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.volume {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  transition: gap 0.2s ease;
+}
+
+.volume:hover,
+.volume:focus-within {
+  gap: 0.5rem;
+}
+
+.mute-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.mute-btn:hover {
+  color: var(--fg);
+}
+
+#volume-slider {
+  width: 0;
+  opacity: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  pointer-events: none;
+  transition:
+    width 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.volume:hover #volume-slider,
+.volume:focus-within #volume-slider {
+  width: 80px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* On touch devices, hover doesn't really exist and screen width is
+   scarce — the phone's own hardware volume controls make an in-page
+   slider redundant, so drop it entirely and keep just the mute toggle. */
+@media (max-width: 480px) {
+  #volume-slider {
+    display: none;
+  }
+}
+
+.speed-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.cc-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.cc-btn:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.cc-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.caption-box {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  max-height: 4.6em;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.caption-box::-webkit-scrollbar {
+  display: none;
+}
+
+.caption-box p {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.cap-word {
+  padding: 0.05em 0.15em;
+  border-radius: 4px;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.cap-word.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* --- Tag filter --- */
+
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tag-chip {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tag-chip:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.tag-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* --- Segments --- */
+
+.segment {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.segment.active {
+  border-color: var(--accent);
+}
+
+.segment-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.segment-tag {
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.segment h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.segment p {
+  margin: 0 0 0.75rem;
+  line-height: 1.6;
+}
+
+.tone {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.tone-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.tone-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.tone-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.tone-caveat {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.segment-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.source-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+
+.source-badge img {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.transcript-text {
+  white-space: pre-line;
+}
+
+.timestamp-btn {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.timestamp-btn:hover {
+  color: var(--accent);
+}
+
+.article-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.article-link:hover {
+  text-decoration: underline;
+}
