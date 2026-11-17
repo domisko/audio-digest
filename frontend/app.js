@@ -435,11 +435,19 @@ function initPlayer() {
 }
 
 const player = initPlayer();
+let isStaticDemo = false;
 
 async function loadDigest() {
   showState("loading");
   try {
-    const response = await fetch(`${API_BASE}/api/digest/today`);
+    let response = await fetch(`${API_BASE}/api/digest/today`);
+    if (!response.ok) {
+      const fallback = await fetch("./latest.json");
+      if (fallback.ok) {
+        isStaticDemo = true;
+        response = fallback;
+      }
+    }
     if (response.status === 404) {
       showState("empty");
       return;
@@ -464,7 +472,7 @@ function render(result) {
     month: "long",
     day: "numeric",
   });
-  player.setSrc(`${API_BASE}/api/digest/today/audio`);
+  player.setSrc(isStaticDemo ? "./latest.mp3" : `${API_BASE}/api/digest/today/audio`);
 
   currentSegments = result.script.segments;
   activeTag = null;
